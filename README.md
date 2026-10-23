@@ -31,3 +31,12 @@ I am sorry about mistakes in the reversed schematic, if any :)
 Disclaimer:
 no guarantee, no support.
 
+---
+
+## Ketcar: Host-UART (Gas / Bremse)
+
+Sketch und Verdrahtung (Deutsch): [`docs/ketcar-uart-host.md`](docs/ketcar-uart-host.md)  
+Code: [`Arduino/ketcar_hoverserial/`](Arduino/ketcar_hoverserial/)
+
+**Verdrahtung kurz:** Host TX → Board **PB4** (Rx), Host RX ← Board **PB6** (Tx), GND; 3,3‑V-Logik (bei 5‑V-Host Pegelwandler). Baud **115200**, Startframe **`0xABCD`**, Checksum = start ⊕ steer ⊕ speed. Frames alle ~25 ms (Firmware-Timeout ~0,8 s).
+
