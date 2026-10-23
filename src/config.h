@@ -108,17 +108,57 @@
 
 
 
-// ########################### UART SETIINGS ############################
+// ########################### UART SETTINGS ############################
 #define SERIAL_START_FRAME      0xABCD                  // [-] Start frame definition for serial commands
 #define SERIAL_BUFFER_SIZE      64                      // [bytes] Size of Serial Rx buffer. Make sure it is always larger than the structure size
 #define SERIAL_TIMEOUT          160                     // [-] Serial timeout duration for the received data. 160 ~= 0.8 sec. Calculation: 0.8 sec / 0.005 sec
-#define UART_BAUD             115200                  // UART3 baud rate (short wired cable)
-//#define UART_BAUD             38400                  // UART3 baud rate (short wired cable)
-// ########################### UART SETIINGS ############################
+#define UART_BAUD             115200                  // UART1 baud rate (PB6 Tx / PB4 Rx)
+//#define UART_BAUD             38400                  // UART1 baud rate (longer cable)
+// ########################### UART SETTINGS ############################
 
+/* ########################### INPUT SELECT (Ketcar) ############################
+ * README of this MM32 port said "Only UART control is functional". That was true
+ * for the stock tree: EFeru VARIANT_ADC was never wired — but pot scaling helpers
+ * (calcInputCmd / checkInputType / PRI_INPUT) were already left in util.c.
+ *
+ * CONTROL_ADC (default): throttle potentiometer on PA3 (ADC1_VIN[3]).
+ *   Pin sources: hardware/pinout.JPG labels pad PA3; MindMotion DS_MM32SPIN05x
+ *   PA3 = ADC1_VIN[3]; setup.c previously scanned CH0/1/4/5/7/9 only (not CH3).
+ * CONTROL_SERIAL: UART host (EFeru hoverserial) as compile-time fallback.
+ * Do not enable both as primary — pick one.
+ */
+#define CONTROL_ADC             1
+// #define CONTROL_SERIAL       1   // Uncomment and undef CONTROL_ADC for UART host
 
-                                                        //160 ~= 0.8 sec. Calculation: 0.8 sec / 0.005 sec
-#define PRI_INPUT             3, -1000, 0, 1000, 0     // TYPE, MIN, MID, MAX, DEADBAND. See INPUT FORMAT section
+#if defined(CONTROL_ADC) && defined(CONTROL_SERIAL)
+  #error "Enable only one of CONTROL_ADC or CONTROL_SERIAL"
+#endif
+#if !defined(CONTROL_ADC) && !defined(CONTROL_SERIAL)
+  #error "Define CONTROL_ADC or CONTROL_SERIAL in config.h"
+#endif
+
+#ifdef CONTROL_ADC
+/* INPUT FORMAT: TYPE, MIN, MID, MAX, DEADBAND
+ * TYPE 1 = normal pot (idle at MIN) → maps to 0 … +1000 (forward-only throttle)
+ * TYPE 2 = mid-resting pot → maps to −1000 … +1000 (see docs/ketcar-poti.md)
+ * MIN/MID/MAX are raw 12-bit ADC counts (0…4095). Calibrate on your pot!
+ * Default TYPE 1 for Ketcar gas pedal; MID equals MIN for type 1.
+ */
+#define PRI_INPUT               1, 400, 400, 3700, 0
+#define POT_OPEN_LOW            40      // raw < this → open / failsafe → cmd 0
+#define POT_OPEN_HIGH           4050    // raw > this → short / failsafe → cmd 0
+#define POT_IDLE_ZONE           60      // type-1: extra idle above MIN (raw counts)
+
+/* Optional brake switch on CHARG connector: PB10 ↔ GND (pinout.JPG).
+ * Active low with internal pull-up; when closed → cmd forced to 0.
+ */
+#define BRAKE_SWITCH_ENABLE     1
+#endif
+
+#ifdef CONTROL_SERIAL
+/* UART primary (legacy): TYPE 3 auto-detect around −1000…1000 from host speed field */
+#define PRI_INPUT               3, -1000, 0, 1000, 0
+#endif
 
 #define ADC_SWITCH_CNT 10
 
