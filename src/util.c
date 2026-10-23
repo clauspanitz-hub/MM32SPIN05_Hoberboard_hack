@@ -164,6 +164,7 @@ void calcInputCmd(InputStruct *in, int16_t out_min, int16_t out_max) {
 // Function to handle the ADC, UART and General timeout (Nunchuk, PPM, PWM)
 void handleTimeout(void) 
 {
+#ifdef CONTROL_SERIAL
   if (timeoutCntSerial_R++ >= SERIAL_TIMEOUT)    // Timeout qualification
   {  
     timeoutFlgSerial_R = 1;                         // Timeout detected
@@ -175,9 +176,16 @@ void handleTimeout(void)
   if (timeoutFlgSerial) 
   {
     ctrlModReq  = OPEN_MODE;                                          // Request OPEN_MODE. This will bring the motor power to 0 in a controlled way
-    //input1.cmd  = 0;
     input.cmd  = 0;
-  } else ctrlModReq  = ctrlModReqRaw;                                      // Follow the Mode request    
+  } else {
+    ctrlModReq  = ctrlModReqRaw;                                      // Follow the Mode request
+  }
+#else
+  /* CONTROL_ADC: no UART keepalive required */
+  timeoutFlgSerial = 0;
+  timeoutFlgSerial_R = 0;
+  ctrlModReq = ctrlModReqRaw;
+#endif
 }
 
 
@@ -186,8 +194,32 @@ void handleTimeout(void)
 // - MIN/MAX limitations and deadband
 void readCommand(void) 
 {
+#ifdef CONTROL_ADC
+  input.raw = (int16_t)adc_buffer.pot;
+
+  /* Open-wiper / rail fail-safe → 0 */
+  if (input.raw < POT_OPEN_LOW || input.raw > POT_OPEN_HIGH) {
+    input.cmd = 0;
+  } else {
+    calcInputCmd(&input, InputMin, InputMax);
+    /* Type-1 throttle: keep a small idle band just above MIN */
+    if (input.typ == 1 && input.raw < (input.min + POT_IDLE_ZONE)) {
+      input.cmd = 0;
+    }
+  }
+
+#if BRAKE_SWITCH_ENABLE
+  /* CHARG PB10 to GND → brake (active low) */
+  if (!(BRAKE_PORT->IDR & (1u << BRAKE_PIN))) {
+    input.cmd = 0;
+  }
+#endif
+
+#else /* CONTROL_SERIAL */
   input.raw = commandR.speed;
   calcInputCmd(&input, InputMin, InputMax);
+#endif
+
   handleTimeout();
 }
 

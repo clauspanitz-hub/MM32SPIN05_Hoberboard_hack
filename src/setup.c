@@ -126,7 +126,14 @@ void GPIO_Init(void)
   GPIOC->CRH &= ~(GPIO_CNF_MODE_MASK << GPIO_CRH_CNF_MODE_14_Pos);             
   GPIOC->CRH |= GPIO_CNF_MODE_FLOATING << GPIO_CRH_CNF_MODE_14_Pos;			
   GPIOC->CRH &= ~(GPIO_CNF_MODE_MASK << GPIO_CRH_CNF_MODE_14_Pos);             
-  GPIOC->CRH |= GPIO_CNF_MODE_FLOATING << GPIO_CRH_CNF_MODE_14_Pos;			    	
+  GPIOC->CRH |= GPIO_CNF_MODE_FLOATING << GPIO_CRH_CNF_MODE_14_Pos;
+
+#if defined(CONTROL_ADC) && BRAKE_SWITCH_ENABLE
+  /* CHARG connector PB10: brake switch to GND, internal pull-up (pinout.JPG) */
+  GPIOB->CRH &= ~(GPIO_CNF_MODE_MASK << GPIO_CRH_CNF_MODE_10_Pos);
+  GPIOB->CRH |= GPIO_CNF_MODE_INPUPD << GPIO_CRH_CNF_MODE_10_Pos;
+  GPIOB->BSRR = GPIO_BSRR_BS10;   /* pull-up */
+#endif
 }
 
 #define  PWM_RES   (72000000 / 2 / PWM_FREQ)          // = 2250
@@ -213,6 +220,9 @@ void ADC1_Init(void)
              | ADC_CHSR_CH4 | ADC_CHSR_CH5   //phase c
              | ADC_CHSR_CH7                  // I common
 	           | ADC_CHSR_CH9                  // voltage             
+#ifdef CONTROL_ADC
+             | ADC_CHSR_CH3                  // throttle pot PA3 = ADC1_VIN[3]
+#endif
              | ADC_CHSR_CHT;                 // temperature
 
 
@@ -267,7 +277,10 @@ void  ADC1_COMP_IRQHandler (void)
 	adc_buffer.rrC = (ADC1->ADDR4 - ADC1->ADDR5) & 0xFFF;
 	adc_buffer.dcr = ADC1->ADDR7 & 0xFFF;     
   adc_buffer.batt1 = ADC1->ADDR9 & 0xFFF;  
-  adc_buffer.temp =  ADC1->ADDR14 & 0xFFF;  
+  adc_buffer.temp =  ADC1->ADDR14 & 0xFFF;
+#ifdef CONTROL_ADC
+  adc_buffer.pot = ADC1->ADDR3 & 0xFFF;   /* PA3 */
+#endif  
 
   // offset calibrate
   static uint8_t DummyCnt=100;

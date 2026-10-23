@@ -140,7 +140,12 @@ typedef struct {
   uint16_t rrC;
   uint16_t batt1;  
   uint16_t temp;
+  uint16_t pot;   /* throttle ADC (PA3 / CH3) when CONTROL_ADC */
 } adc_buf_t;
+
+/* Optional brake input — CHARG header PB10 (hardware/pinout.JPG) */
+#define BRAKE_PORT  GPIOB
+#define BRAKE_PIN   10
 
 
 #endif // DEFINES_H

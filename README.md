@@ -3,8 +3,15 @@
 This project is EFeru Hoverboard hack clone for MM32SPIN05 (https://github.com/EFeru/hoverboard-firmware-hack-FOC)
 <img src="hardware/IMG_6922.JPG">
 
-Only UART control is functional.
-Please check here https://github.com/EFeru/hoverboard-firmware-hack-FOC/tree/main/Arduino/hoverserial for details.
+## Input modes (Ketcar fork)
+
+**Default: potentiometer (ADC) on PA3** — see [docs/ketcar-poti.md](docs/ketcar-poti.md).
+
+- Throttle pot → speed **0…1000** (forward). Optional brake switch on **PB10** (CHARG ↔ GND).
+- UART host remains a **compile-time fallback** (`CONTROL_SERIAL` in `src/config.h`). Protocol notes: [EFeru hoverserial](https://github.com/EFeru/hoverboard-firmware-hack-FOC/tree/main/Arduino/hoverserial).
+
+Upstream README said “Only UART control is functional”: EFeru `VARIANT_ADC` was never wired on this MM32 port; pot scaling helpers already existed in `util.c`. This fork enables ADC CH3 (PA3).
+
 <img src="hardware/IMG_6918.JPG">
 
 TRQ_MODE and SPD_MODE are not functional because of hardware limitation - looks like originally board was designed for MCU with integrated opamp.

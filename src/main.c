@@ -233,7 +233,11 @@ int main(void)
       {
         Feedback.start	      = SERIAL_START_FRAME;
         Feedback.cmd          = input.cmd;
+#ifdef CONTROL_ADC
+        Feedback.cmd1         = (int16_t)adc_buffer.pot;  /* raw pot ADC for calibration */
+#else
         Feedback.cmd1         = cur_phaB;  //data
+#endif
         Feedback.speed_meas	  = rtY.n_mot;
         Feedback.speedR_meas	= cur_phaC;  // data
         Feedback.batVoltage	  = batVoltageCalib;
@@ -266,8 +270,10 @@ int main(void)
       enable = 0;
       beepCount(1, 24, 1);
     }
+#ifdef CONTROL_SERIAL
     else if (timeoutFlgSerial)        // 3 beeps (low pitch): Serial timeout
       beepCount(3, 24, 1);
+#endif
     else if (TEMP_WARNING_ENABLE && board_temp_deg_c >= TEMP_WARNING)     // 5 beeps (low pitch): Mainboard temperature warning
       beepCount(5, 24, 1);
     else if (BAT_LVL1_ENABLE && batVoltage < BAT_LVL1)      // 1 beep fast (medium pitch): Low bat 1
